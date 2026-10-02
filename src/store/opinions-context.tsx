@@ -1,26 +1,35 @@
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState, type ReactNode } from 'react';
 
-export const OpinionsContext = createContext({
+import type { OpinionData, NewOpinionData } from '../types';
+
+interface OpinionsContextValue {
+  opinions: OpinionData[] | null;
+  addOpinion: (opinion: NewOpinionData) => Promise<void>;
+  upvoteOpinion: (id: number) => Promise<void>;
+  downvoteOpinion: (id: number) => Promise<void>;
+}
+
+export const OpinionsContext = createContext<OpinionsContextValue>({
   opinions: null,
-  addOpinion: (opinion) => {},
-  upvoteOpinion: (id) => {},
-  downvoteOpinion: (id) => {},
+  addOpinion: async () => {},
+  upvoteOpinion: async () => {},
+  downvoteOpinion: async () => {},
 });
 
-export function OpinionsContextProvider({ children }) {
-  const [opinions, setOpinions] = useState();
+export function OpinionsContextProvider({ children }: { children: ReactNode }) {
+  const [opinions, setOpinions] = useState<OpinionData[] | null>(null);
 
   useEffect(() => {
     async function loadOpinions() {
       const response = await fetch('http://localhost:3000/opinions');
-      const opinions = await response.json();
+      const opinions: OpinionData[] = await response.json();
       setOpinions(opinions);
     }
 
     loadOpinions();
   }, []);
 
-  async function addOpinion(enteredOpinionData) {
+  async function addOpinion(enteredOpinionData: NewOpinionData) {
     const response = await fetch('http://localhost:3000/opinions', {
       method: 'POST',
       headers: {
@@ -33,33 +42,61 @@ export function OpinionsContextProvider({ children }) {
       return;
     }
 
-    const savedOpinion = await response.json();
-    setOpinions((prevOpinions) => [savedOpinion, ...prevOpinions]);
+    const savedOpinion: OpinionData = await response.json();
+    setOpinions((prevOpinions) => [savedOpinion, ...(prevOpinions ?? [])]);
   }
 
-  function upvoteOpinion(id) {
+  async function upvoteOpinion(id: number) {
+    const response = await fetch(
+      'http://localhost:3000/opinions/' + id + '/upvote',
+      {
+        method: 'POST',
+      }
+    );
+
+    if (!response.ok) {
+      return;
+    }
+
     setOpinions((prevOpinions) => {
-      return prevOpinions.map((opinion) => {
-        if (opinion.id === id) {
-          return { ...opinion, votes: opinion.votes + 1 };
-        }
-        return opinion;
-      });
+      return (
+        prevOpinions &&
+        prevOpinions.map((opinion) => {
+          if (opinion.id === id) {
+            return { ...opinion, votes: opinion.votes + 1 };
+          }
+          return opinion;
+        })
+      );
     });
   }
 
-  function downvoteOpinion(id) {
+  async function downvoteOpinion(id: number) {
+    const response = await fetch(
+      'http://localhost:3000/opinions/' + id + '/downvote',
+      {
+        method: 'POST',
+      }
+    );
+
+    if (!response.ok) {
+      return;
+    }
+
     setOpinions((prevOpinions) => {
-      return prevOpinions.map((opinion) => {
-        if (opinion.id === id) {
-          return { ...opinion, votes: opinion.votes - 1 };
-        }
-        return opinion;
-      });
+      return (
+        prevOpinions &&
+        prevOpinions.map((opinion) => {
+          if (opinion.id === id) {
+            return { ...opinion, votes: opinion.votes - 1 };
+          }
+          return opinion;
+        })
+      );
     });
   }
 
-  const contextValue = {
+  const contextValue: OpinionsContextValue = {
     opinions: opinions,
     addOpinion,
     upvoteOpinion,
