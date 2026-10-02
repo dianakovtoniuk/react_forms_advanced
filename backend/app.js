@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 
 import express from 'express';
 
+const PORT = process.env.PORT || 3000;
+
 async function loadOpinions() {
   try {
     const dbFileData = await fs.readFile('./db.json');
@@ -111,6 +113,6 @@ app.post('/opinions/:id/downvote', async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
